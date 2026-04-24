@@ -5,40 +5,24 @@ import { Module } from "../lib/plugins.js";
 Module({
   command: "play",
   package: "youtube",
-  description: "Play song from YouTube (API based)",
+  description: "Play song from YouTube",
 })(async (message, match) => {
   try {
-    if (!match) {
-      return message.send("❌ Enter song name\n\n.play love nwantiti");
-    }
+    if (!match) return message.send("❌ Enter song name\n\n.play love nwantiti");
 
     await message.react("🔍");
 
-    // 1️⃣ YouTube search
     const res = await yts(match);
-    if (!res.videos || res.videos.length === 0) {
-      return message.send("❌ not found somg");
-    }
+    if (!res.videos || res.videos.length === 0)
+      return message.send("❌ Song not found");
 
     const video = res.videos[0];
 
-    // 2️⃣ Caption (WITH Powered By)
-    const caption = `
-🎵 *Now Playing*
+    const caption = `🎵 *Now Playing*\n\nPᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ\n\n📌 *Title:* ${video.title}\n👤 *Channel:* ${video.author.name}\n⏱️ *Duration:* ${video.timestamp}\n\n⬇️ *Downloading audio...*`.trim();
 
-Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
-
-📌 *Title:* ${video.title}
-👤 *Channel:* ${video.author.name}
-⏱️ *Duration:* ${video.timestamp}
-
-⬇️ *Downloading audio...*
-`.trim();
-
-    // 3️⃣ opts (YouTube thumbnail ব্যবহার হবে)
-    const opts = {
+    await message.send({
       image: { url: video.thumbnail },
-      caption: caption,
+      caption,
       mimetype: "image/jpeg",
       contextInfo: {
         forwardingScore: 999,
@@ -49,30 +33,23 @@ Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
           serverMessageId: 6,
         },
       },
-    };
+    });
 
-    // ✅ Send Now Playing message (এখানেই একবারই পাঠাবে)
-    await message.send(opts);
+    // New API: https://newapi-rypa.onrender.com/download/audio?url=...
+    // Response: { status: true, creator: "...", link: "...mp3" }
+    const apiUrl = `https://newapi-rypa.onrender.com/download/audio?url=${encodeURIComponent(video.url)}`;
+    const { data } = await axios.get(apiUrl, { timeout: 40000 });
 
-    // 4️⃣ Call your API with YouTube link
-    const apiUrl =
-      "https://api-aswin-sparky.koyeb.app/api/downloader/song?search=" +
-      encodeURIComponent(video.url);
-
-    const { data } = await axios.get(apiUrl, { timeout: 30000 });
-
-    if (!data || !data.status || !data.data?.url) {
+    if (!data?.status || !data?.link)
       return message.send("❌ Audio download failed");
-    }
 
-    // 5️⃣ Send audio
     await message.send({
-      audio: { url: data.data.url },
+      audio: { url: data.link },
       mimetype: "audio/mpeg",
-      fileName: `${data.data.title || video.title}.mp3`,
+      fileName: `${video.title}.mp3`,
       contextInfo: {
         externalAdReply: {
-          title: data.data.title || video.title,
+          title: video.title,
           body: "Powered By sᴀʏᴀɴ - xᴍᴅ",
           mediaType: 2,
           sourceUrl: video.url,
@@ -82,7 +59,6 @@ Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
     });
 
     await message.react("🎧");
-
   } catch (err) {
     console.error("[PLAY ERROR]", err);
     await message.send("⚠️ Play failed");
