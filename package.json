@@ -21,7 +21,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@google/genai": "^1.30.0",
     "@hapi/boom": "^10.0.1",
-    "@whiskeysockets/baileys": "^7.0.0-rc.9",
+    "@whiskeysockets/baileys": "git+https://lyfe00011-admin@bitbucket.org/lyfe00011/baileys.git",
     "anime-quiz": "^3.0.0",
     "axios": "^1.13.6",
     "axios-cookiejar-support": "^6.0.5",
