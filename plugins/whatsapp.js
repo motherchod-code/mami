@@ -943,4 +943,84 @@ Module({
   }
 });
 
+
+
+
+Module({
+  command: "fullpp",
+  package: "owner",
+  aliases: ["setdp", "setprofile", "pp", "gpp"],
+  description: "Set bot profile picture",
+  usage: ".setpp <reply to image | url>",
+})(async (message, match) => {
+  try {
+    // 🔒 Only owner
+    if (!message.isfromMe) {
+      return message.reply("❌ Only owner can use this command");
+    }
+
+    let media;
+
+    // ✅ 1. URL থেকে image
+    if (match && match.startsWith("http")) {
+      try {
+        const res = await axios.get(match, {
+          responseType: "arraybuffer",
+          timeout: 15000,
+        });
+
+        media = Buffer.from(res.data);
+      } catch (e) {
+        return message.reply("❌ Invalid image URL");
+      }
+    }
+
+    // ✅ 2. Direct image
+    else if (message.mtype === "imageMessage") {
+      media = await message.conn.downloadMediaMessage(message);
+    }
+
+    // ✅ 3. Reply image
+    else if (message.quoted?.mtype === "imageMessage") {
+      media = await message.conn.downloadMediaMessage(message.quoted);
+    }
+
+    else {
+      return message.reply(
+        "❌ Send image / reply to image / provide image URL"
+      );
+    }
+
+    // ❌ যদি media না আসে
+    if (!media) {
+      return message.reply("❌ Failed to fetch image");
+    }
+
+    // ⚠️ Size check (max ~5MB safe)
+    if (media.length > 5 * 1024 * 1024) {
+      return message.reply("❌ Image too large (max 5MB)");
+    }
+
+    // ⏳ React loading
+    await message.react("⏳");
+
+    // 🔥 YOUR REQUIRED LINE (no change)
+    await message.conn.updateProfilePicture(
+      message.conn.user.id,
+      media
+    );
+
+    // ✅ Success
+    await message.react("✅");
+    await message.reply("✅ Profile picture updated successfully");
+
+  } catch (err) {
+    console.error("SetPP Error:", err);
+
+    await message.react("❌");
+    await message.reply(
+      "❌ Failed to update profile picture\n\nPossible reasons:\n- Invalid image\n- Baileys issue\n- Connection problem"
+    );
+  }
+});
 // End of plugin
