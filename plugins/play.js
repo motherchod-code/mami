@@ -37,7 +37,7 @@ Module({
 
     // New API: https://newapi-rypa.onrender.com/download/audio?url=...
     // Response: { status: true, creator: "...", link: "...mp3" }
-    const apiUrl = `https://newapi-rypa.onrender.com/download/audio?url=${encodeURIComponent(video.url)}`;
+    const apiUrl = `https://newapi-rypa.onrender.com/download/api/song?url=${encodeURIComponent(video.url)}`;
     const { data } = await axios.get(apiUrl, { timeout: 40000 });
 
     if (!data?.status || !data?.link)
