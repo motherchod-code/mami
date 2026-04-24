@@ -1,10 +1,8 @@
 import { Module } from '../lib/plugins.js';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 import axios from 'axios';
 import FormData from 'form-data';
-// FIX: inline mime helper (mime-types not in package.json)
+
+// mime helper
 const mimeExtMap = {
   'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp',
   'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg',
@@ -14,31 +12,19 @@ const mimeExtMap = {
 };
 const mime = { extension: (type) => mimeExtMap[type?.split(';')[0].trim()] || 'bin' };
 
-// ==================== UTILS ====================
-
-function formatBytes(bytes, decimals = 2) {
-  if (!bytes) return '0 Bytes';
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-}
-
-// ==================== MAIN UPLOADER ====================
-
 Module({
   command: "url",
   package: "converter",
   description: "Upload media to URL",
 })(async (message) => {
-  let tempFilePath;
 
   try {
-    const quotedMsg = message.quoted || message;
-    const mimeType = quotedMsg.content?.mimetype || "";
+    const quoted = message.quoted || message;
 
-    if (!quotedMsg.type) {
+    // detect message type safely
+    const msgType = quoted.type || Object.keys(quoted.message || {})[0];
+
+    if (!msgType) {
       return message.send("_Reply to media_");
     }
 
@@ -50,59 +36,65 @@ Module({
       "stickerMessage",
     ];
 
-    if (!supported.includes(quotedMsg.type)) {
+    if (!supported.includes(msgType)) {
       return message.send("❌ Unsupported media");
     }
 
     await message.react("⏳");
 
-    const buffer = await quotedMsg.download();
-
-    if (!buffer || buffer.length === 0) {
-      throw new Error("Download failed");
-    }
+    // safe download
+    const buffer = await quoted.download().catch(() => null);
+    if (!buffer) throw new Error("Download failed");
 
     if (buffer.length > 200 * 1024 * 1024) {
       return message.send("❌ File too large (Max 200MB)");
     }
 
-    // Extension
-    const ext = mime.extension(mimeType) || "bin";
-    const fileName = `file_${Date.now()}.${ext}`;
+    // mime detection
+    const mimeType =
+      quoted.mimetype ||
+      quoted.msg?.mimetype ||
+      "";
 
-    tempFilePath = path.join(os.tmpdir(), fileName);
-    fs.writeFileSync(tempFilePath, buffer);
+    const ext = mime.extension(mimeType);
+    const fileName = `file_${Date.now()}.${ext}`;
 
     let mediaUrl;
 
-    // ================= CATBOX =================
+    // ================= CATBOX UPLOAD =================
     try {
       const form = new FormData();
-      form.append("fileToUpload", fs.createReadStream(tempFilePath));
       form.append("reqtype", "fileupload");
+      form.append("fileToUpload", buffer, fileName);
 
       const res = await axios.post(
         "https://catbox.moe/user/api.php",
         form,
-        { headers: form.getHeaders(), timeout: 30000 }
+        {
+          headers: form.getHeaders(),
+          timeout: 60000,
+        }
       );
 
-      if (!res.data || res.data.includes("error")) {
-        throw new Error("Catbox failed");
+      if (!res.data || typeof res.data !== "string" || res.data.startsWith("Error")) {
+        throw new Error(res.data || "Catbox failed");
       }
 
       mediaUrl = res.data.trim();
 
-    } catch {
+    } catch (err) {
+
       // ================= TELEGRAPH FALLBACK =================
-      if (quotedMsg.type === "imageMessage") {
+      if (mimeType.startsWith("image/")) {
         const form = new FormData();
-        form.append("file", fs.createReadStream(tempFilePath));
+        form.append("file", buffer, fileName);
 
         const res = await axios.post(
           "https://telegra.ph/upload",
           form,
-          { headers: form.getHeaders() }
+          {
+            headers: form.getHeaders(),
+          }
         );
 
         if (res.data && res.data[0]?.src) {
@@ -110,24 +102,24 @@ Module({
         } else {
           throw new Error("Upload failed");
         }
+
       } else {
-        throw new Error("Catbox failed");
+        throw new Error("Catbox upload failed");
       }
     }
 
-    // ================= MEDIA TYPE =================
+    // ================= TYPE FORMAT =================
 
     let mediaType = "File";
-    if (quotedMsg.type === "imageMessage") mediaType = "Image";
-    else if (quotedMsg.type === "videoMessage") mediaType = "Video";
-    else if (quotedMsg.type === "audioMessage") mediaType = "Audio";
-    else if (quotedMsg.type === "documentMessage") mediaType = "Document";
-    else if (quotedMsg.type === "stickerMessage") mediaType = "Sticker";
+    if (msgType === "imageMessage") mediaType = "Image";
+    else if (msgType === "videoMessage") mediaType = "Video";
+    else if (msgType === "audioMessage") mediaType = "Audio";
+    else if (msgType === "documentMessage") mediaType = "Document";
+    else if (msgType === "stickerMessage") mediaType = "Sticker";
 
-    // Stylish mapping
     const styleMap = {
       Audio: "Aᴜᴅɪᴏ",
-      Video: "Vᴇᴅɪᴏ",
+      Video: "Vɪᴅᴇᴏ",
       Image: "Iᴍᴀɢᴇ",
       Document: "Dᴏᴄᴜᴍᴇɴᴛ",
       Sticker: "Sᴛɪᴄᴋᴇʀ",
@@ -136,7 +128,7 @@ Module({
 
     const styledType = styleMap[mediaType] || "Fɪʟᴇ";
 
-    // ================= MESSAGE =================
+    // ================= RESPONSE =================
 
     const msg = `
 ╭━━━「 *𝐔ᴘʟᴏᴀᴅ 𝐒ᴜᴄsᴇss* 」━━━┈⊷
@@ -155,10 +147,5 @@ Module({
     console.error(err);
     await message.react("❌");
     await message.send(`❌ Upload Failed\n\n_${err.message}_`);
-
-  } finally {
-    if (tempFilePath && fs.existsSync(tempFilePath)) {
-      fs.unlinkSync(tempFilePath);
-    }
   }
 });
