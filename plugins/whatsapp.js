@@ -945,7 +945,6 @@ Module({
 
 
 
-
 Module({
   command: "fullpp",
   package: "owner",
@@ -954,73 +953,49 @@ Module({
   usage: ".setpp <reply to image | url>",
 })(async (message, match) => {
   try {
-    // 🔒 Only owner
-    if (!message.isfromMe) {
-      return message.reply("❌ Only owner can use this command");
-    }
+    if (!message.isfromMe) return message.send(theme.isfromMe);
 
     let media;
 
-    // ✅ 1. URL থেকে image
+    // ✅ URL case
     if (match && match.startsWith("http")) {
-      try {
-        const res = await axios.get(match, {
-          responseType: "arraybuffer",
-          timeout: 15000,
-        });
-
-        media = Buffer.from(res.data);
-      } catch (e) {
-        return message.reply("❌ Invalid image URL");
-      }
+      const axios = require("axios");
+      const res = await axios.get(match, {
+        responseType: "arraybuffer",
+      });
+      media = Buffer.from(res.data);
     }
 
-    // ✅ 2. Direct image
-    else if (message.mtype === "imageMessage") {
+    // ✅ Direct image
+    else if (message.type === "imageMessage") {
       media = await message.conn.downloadMediaMessage(message);
     }
 
-    // ✅ 3. Reply image
-    else if (message.quoted?.mtype === "imageMessage") {
+    // ✅ Reply image
+    else if (message.quoted?.type === "imageMessage") {
       media = await message.conn.downloadMediaMessage(message.quoted);
     }
 
     else {
-      return message.reply(
-        "❌ Send image / reply to image / provide image URL"
-      );
+      return message.send("❌ Send image, reply to image, or provide URL");
     }
 
-    // ❌ যদি media না আসে
-    if (!media) {
-      return message.reply("❌ Failed to fetch image");
-    }
+    if (!media) return message.send("❌ Image not found");
 
-    // ⚠️ Size check (max ~5MB safe)
-    if (media.length > 5 * 1024 * 1024) {
-      return message.reply("❌ Image too large (max 5MB)");
-    }
-
-    // ⏳ React loading
     await message.react("⏳");
 
-    // 🔥 YOUR REQUIRED LINE (no change)
+    // 🔥 EXACTLY YOUR REQUIRED LINE
     await message.conn.updateProfilePicture(
       message.conn.user.id,
       media
     );
 
-    // ✅ Success
     await message.react("✅");
-    await message.reply("✅ Profile picture updated successfully");
+    await message.send("✅ Profile picture updated");
 
   } catch (err) {
-    console.error("SetPP Error:", err);
-
+    console.error("SetPP command error:", err);
     await message.react("❌");
-    await message.reply(
-      "❌ Failed to update profile picture\n\nPossible reasons:\n- Invalid image\n- Baileys issue\n- Connection problem"
-    );
+    await message.send("❌ Failed to update profile picture");
   }
 });
-// End of plugin
