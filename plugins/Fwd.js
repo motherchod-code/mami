@@ -97,7 +97,7 @@ Module({
 
 
 Module({
-  command: "save",
+  command: "saved",
   package: "owner",
   description: "Save quoted message (3 fallback system)",
 })(async (message, match) => {
