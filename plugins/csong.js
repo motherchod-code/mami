@@ -1,7 +1,6 @@
 import axios from "axios";
 import yts from "yt-search";
 import { Module } from "../lib/plugins.js";
-import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -10,18 +9,13 @@ import ffmpegPath from "ffmpeg-static";
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const generateWaveform = () =>
   Array.from({ length: 100 }, () => Math.floor(Math.random() * 101));
 
-// Channel link → JID resolver
+// Channel link → JID
 const resolveChannelJid = async (input, message) => {
   input = input.trim();
-
-  // Already a JID
   if (input.includes("@newsletter")) return input;
-
-  // Channel invite link
   try {
     const url = new URL(input);
     if (url.pathname.startsWith("/channel/")) {
@@ -30,16 +24,22 @@ const resolveChannelJid = async (input, message) => {
       return res.id;
     }
   } catch (_) {}
-
   return null;
 };
 
-// Audio → OGG voice note converter
+// YouTube link check
+const isYouTubeUrl = (str) =>
+  /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/.test(str.trim());
+
+// Audio → OGG voice note
 const toVoiceNote = async (audioUrl) => {
   const inFile = path.join(os.tmpdir(), `csong_in_${Date.now()}.mp3`);
   const outFile = path.join(os.tmpdir(), `csong_out_${Date.now()}.ogg`);
 
-  const { data } = await axios.get(audioUrl, { responseType: "arraybuffer", timeout: 30000 });
+  const { data } = await axios.get(audioUrl, {
+    responseType: "arraybuffer",
+    timeout: 30000,
+  });
   fs.writeFileSync(inFile, Buffer.from(data));
 
   const duration = await new Promise((resolve) => {
@@ -60,7 +60,6 @@ const toVoiceNote = async (audioUrl) => {
   });
 
   const buffer = fs.readFileSync(outFile);
-
   try { fs.unlinkSync(inFile); } catch {}
   try { fs.unlinkSync(outFile); } catch {}
 
@@ -70,26 +69,28 @@ const toVoiceNote = async (audioUrl) => {
 Module({
   command: "csong",
   package: "youtube",
-  description: "Download song → voice note → forward to channel",
-  usage: ".csong <song name> | <channel jid / channel link>",
+  description: "Download song → voice note → send to channel",
+  usage: ".csong <song name / yt link> , <channel jid / channel link>",
 })(async (message, match) => {
   try {
     if (!match) {
       return message.send(
-        "❌ Usage:\n.csong love nwantiti | 120363418088880523@newsletter\n.csong song name | https://whatsapp.com/channel/xxxx"
+        "❌ Usage:\n.csong love nwantiti , 120363418088880523@newsletter\n.csong https://youtu.be/xxx , https://whatsapp.com/channel/xxx"
       );
     }
 
-    // Parse input: split by last "|"
-    const lastPipe = match.lastIndexOf("|");
-    if (lastPipe === -1) {
-      return message.send("❌ Provide channel JID or link after `|`\n\nExample:\n.csong song name | 120363418088880523@newsletter");
+    // Split by last comma
+    const lastComma = match.lastIndexOf(",");
+    if (lastComma === -1) {
+      return message.send(
+        "❌ Use comma to separate song and channel\n\nExample:\n.csong song name , channel_jid"
+      );
     }
 
-    const songName = match.slice(0, lastPipe).trim();
-    const channelInput = match.slice(lastPipe + 1).trim();
+    const songInput = match.slice(0, lastComma).trim();
+    const channelInput = match.slice(lastComma + 1).trim();
 
-    if (!songName) return message.send("❌ Enter song name");
+    if (!songInput) return message.send("❌ Enter song name or YouTube link");
     if (!channelInput) return message.send("❌ Enter channel JID or link");
 
     await message.react("🔍");
@@ -100,13 +101,29 @@ Module({
       return message.send("❌ Invalid channel JID or link");
     }
 
-    // Search YouTube
-    const res = await yts(songName);
-    if (!res.videos || res.videos.length === 0) {
-      return message.send("❌ Song not found");
+    // Search or use direct URL
+    let video;
+    if (isYouTubeUrl(songInput)) {
+      const res = await yts({ videoId: songInput.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || "" });
+      video = res || null;
+      // fallback: use URL directly
+      if (!video?.title) {
+        video = {
+          title: "Unknown Title",
+          author: { name: "Unknown" },
+          timestamp: "?",
+          thumbnail: "",
+          url: songInput,
+        };
+      }
+    } else {
+      const res = await yts(songInput);
+      if (!res.videos || res.videos.length === 0) {
+        return message.send("❌ Song not found");
+      }
+      video = res.videos[0];
     }
 
-    const video = res.videos[0];
     await message.react("⬇️");
 
     // API download
@@ -120,6 +137,13 @@ Module({
       return message.send("❌ Audio download failed");
     }
 
+    // 1️⃣ Now Playing card → user chat
+    await message.send({
+      image: { url: video.thumbnail },
+      caption: `🎵 *Now Playing*\n\nPᴏᴡᴇʀᴇᴅ Bʏ ᴍʀ ʀᴀʙʙɪᴛ\n\n📌 *Title:* ${video.title}\n👤 *Channel:* ${video.author.name}\n⏱️ *Duration:* ${video.timestamp}`.trim(),
+      mimetype: "image/jpeg",
+    });
+
     await message.react("🎙️");
 
     // Convert to voice note
@@ -128,7 +152,7 @@ Module({
 
     await message.react("📤");
 
-    // Send to channel WITHOUT forward tag
+    // 2️⃣ Only voice note → channel
     await message.conn.sendMessage(channelJid, {
       audio: voiceBuffer,
       mimetype: "audio/ogg; codecs=opus",
@@ -136,13 +160,6 @@ Module({
       seconds: duration,
       waveform: waveform,
       contextInfo: {
-        externalAdReply: {
-          title: video.title,
-          body: `🎵 ${video.author.name} • ${video.timestamp}`,
-          mediaType: 2,
-          sourceUrl: video.url,
-          thumbnailUrl: video.thumbnail,
-        },
         forwardingScore: 0,
         isForwarded: false,
       },
@@ -150,7 +167,7 @@ Module({
 
     await message.react("✅");
     await message.send(
-      `✅ *Song sent to channel!*\n\n🎵 *${video.title}*\n👤 ${video.author.name}\n⏱️ ${video.timestamp}`
+      `✅ *Sent to channel!*\n\n🎵 *${video.title}*\n👤 ${video.author.name}\n⏱️ ${video.timestamp}`
     );
 
   } catch (err) {
