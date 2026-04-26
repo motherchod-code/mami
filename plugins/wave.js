@@ -50,14 +50,13 @@ Module({
     const voice = fs.readFileSync(outFile);
     const waveform = generateWaveform();
 
-    await message.conn.sendMessage(message.jid, {
-      audio: voice,
-      mimetype: "audio/ogg; codecs=opus",
-      ptt: true,
-      seconds: duration,
-      waveform: waveform,
-    });
-
+    await message.conn.sendMessage(message.key.remoteJid, {
+  audio: voice,
+  mimetype: "audio/ogg; codecs=opus",
+  ptt: true,
+  seconds: duration,
+  waveform: waveform,
+});
     await message.react("✅");
   } catch (e) {
     console.error(e);
