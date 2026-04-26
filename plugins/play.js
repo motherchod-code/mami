@@ -8,21 +8,22 @@ Module({
   description: "Play song from YouTube (API based)",
 })(async (message, match) => {
   try {
+    // ❌ No query
     if (!match) {
       return message.send("❌ Enter song name\n\n.play love nwantiti");
     }
 
     await message.react("🔍");
 
-    // 1️⃣ YouTube search
+    // 🔎 1. Search YouTube
     const res = await yts(match);
     if (!res.videos || res.videos.length === 0) {
-      return message.send("❌ not found somg");
+      return message.send("❌ Song not found");
     }
 
     const video = res.videos[0];
 
-    // 2️⃣ Caption (WITH Powered By)
+    // 📝 2. Caption
     const caption = `
 🎵 *Now Playing*
 
@@ -35,8 +36,8 @@ Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
 ⬇️ *Downloading audio...*
 `.trim();
 
-    // 3️⃣ opts (YouTube thumbnail ব্যবহার হবে)
-    const opts = {
+    // 🖼️ 3. Send thumbnail + info
+    await message.send({
       image: { url: video.thumbnail },
       caption: caption,
       mimetype: "image/jpeg",
@@ -49,30 +50,28 @@ Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
           serverMessageId: 6,
         },
       },
-    };
+    });
 
-    // ✅ Send Now Playing message (এখানেই একবারই পাঠাবে)
-    await message.send(opts);
-
-    // 4️⃣ Call your API with YouTube link
+    // 🌐 4. API Call
     const apiUrl =
       "https://newapi-rypa.onrender.com/api/song?url=" +
       encodeURIComponent(video.url);
 
     const { data } = await axios.get(apiUrl, { timeout: 30000 });
 
-    if (!data || !data.status || !data.data?.url) {
+    // ❌ Check API response
+    if (!data || !data.status || !data.result?.audio) {
       return message.send("❌ Audio download failed");
     }
 
-    // 5️⃣ Send audio
+    // 🎧 5. Send Audio
     await message.send({
-      audio: { url: data.data.url },
+      audio: { url: data.result.audio },
       mimetype: "audio/mpeg",
-      fileName: `${data.data.title || video.title}.mp3`,
+      fileName: `${video.title}.mp3`,
       contextInfo: {
         externalAdReply: {
-          title: data.data.title || video.title,
+          title: video.title,
           body: "Powered By sᴀʏᴀɴ - xᴍᴅ",
           mediaType: 2,
           sourceUrl: video.url,
@@ -85,6 +84,12 @@ Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
 
   } catch (err) {
     console.error("[PLAY ERROR]", err);
-    await message.send("⚠️ Play failed");
+
+    // ⚠️ Better error message
+    if (err.code === "ECONNABORTED") {
+      await message.send("⏳ Server timeout, try again");
+    } else {
+      await message.send("⚠️ Play failed");
+    }
   }
 });
