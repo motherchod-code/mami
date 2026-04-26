@@ -5,24 +5,40 @@ import { Module } from "../lib/plugins.js";
 Module({
   command: "play",
   package: "youtube",
-  description: "Play song from YouTube",
+  description: "Play song from YouTube (API based)",
 })(async (message, match) => {
   try {
-    if (!match) return message.send("❌ Enter song name\n\n.play love nwantiti");
+    if (!match) {
+      return message.send("❌ Enter song name\n\n.play love nwantiti");
+    }
 
     await message.react("🔍");
 
+    // 1️⃣ YouTube search
     const res = await yts(match);
-    if (!res.videos || res.videos.length === 0)
-      return message.send("❌ Song not found");
+    if (!res.videos || res.videos.length === 0) {
+      return message.send("❌ not found somg");
+    }
 
     const video = res.videos[0];
 
-    const caption = `🎵 *Now Playing*\n\nPᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ\n\n📌 *Title:* ${video.title}\n👤 *Channel:* ${video.author.name}\n⏱️ *Duration:* ${video.timestamp}\n\n⬇️ *Downloading audio...*`.trim();
+    // 2️⃣ Caption (WITH Powered By)
+    const caption = `
+🎵 *Now Playing*
 
-    await message.send({
+Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
+
+📌 *Title:* ${video.title}
+👤 *Channel:* ${video.author.name}
+⏱️ *Duration:* ${video.timestamp}
+
+⬇️ *Downloading audio...*
+`.trim();
+
+    // 3️⃣ opts (YouTube thumbnail ব্যবহার হবে)
+    const opts = {
       image: { url: video.thumbnail },
-      caption,
+      caption: caption,
       mimetype: "image/jpeg",
       contextInfo: {
         forwardingScore: 999,
@@ -33,23 +49,30 @@ Module({
           serverMessageId: 6,
         },
       },
-    });
+    };
 
-    // New API: https://newapi-rypa.onrender.com/download/audio?url=...
-    // Response: { status: true, creator: "...", link: "...mp3" }
-    const apiUrl = `https://newapi-rypa.onrender.com/download/api/song?url=${encodeURIComponent(video.url)}`;
-    const { data } = await axios.get(apiUrl, { timeout: 40000 });
+    // ✅ Send Now Playing message (এখানেই একবারই পাঠাবে)
+    await message.send(opts);
 
-    if (!data?.status || !data?.link)
+    // 4️⃣ Call your API with YouTube link
+    const apiUrl =
+      "https://newapi-rypa.onrender.com/api/song?url=" +
+      encodeURIComponent(video.url);
+
+    const { data } = await axios.get(apiUrl, { timeout: 30000 });
+
+    if (!data || !data.status || !data.data?.url) {
       return message.send("❌ Audio download failed");
+    }
 
+    // 5️⃣ Send audio
     await message.send({
-      audio: { url: data.link },
+      audio: { url: data.data.url },
       mimetype: "audio/mpeg",
-      fileName: `${video.title}.mp3`,
+      fileName: `${data.data.title || video.title}.mp3`,
       contextInfo: {
         externalAdReply: {
-          title: video.title,
+          title: data.data.title || video.title,
           body: "Powered By sᴀʏᴀɴ - xᴍᴅ",
           mediaType: 2,
           sourceUrl: video.url,
@@ -59,6 +82,7 @@ Module({
     });
 
     await message.react("🎧");
+
   } catch (err) {
     console.error("[PLAY ERROR]", err);
     await message.send("⚠️ Play failed");
