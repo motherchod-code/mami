@@ -12,7 +12,6 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 const generateWaveform = () =>
   Array.from({ length: 100 }, () => Math.floor(Math.random() * 101));
 
-// Channel link → JID
 const resolveChannelJid = async (input, message) => {
   input = input.trim();
   if (input.includes("@newsletter")) return input;
@@ -27,11 +26,9 @@ const resolveChannelJid = async (input, message) => {
   return null;
 };
 
-// YouTube link check
 const isYouTubeUrl = (str) =>
   /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/.test(str.trim());
 
-// Audio → OGG voice note
 const toVoiceNote = async (audioUrl) => {
   const inFile = path.join(os.tmpdir(), `csong_in_${Date.now()}.mp3`);
   const outFile = path.join(os.tmpdir(), `csong_out_${Date.now()}.ogg`);
@@ -79,7 +76,6 @@ Module({
       );
     }
 
-    // Split by last comma
     const lastComma = match.lastIndexOf(",");
     if (lastComma === -1) {
       return message.send(
@@ -95,19 +91,24 @@ Module({
 
     await message.react("🔍");
 
-    // Resolve channel JID
     const channelJid = await resolveChannelJid(channelInput, message);
     if (!channelJid) {
       return message.send("❌ Invalid channel JID or link");
     }
 
-    // Search or use direct URL
     let video;
     if (isYouTubeUrl(songInput)) {
-      const res = await yts({ videoId: songInput.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || "" });
-      video = res || null;
-      // fallback: use URL directly
-      if (!video?.title) {
+      const videoId = songInput.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || "";
+      const res = await yts({ videoId });
+      if (res?.title) {
+        video = {
+          title: res.title,
+          author: { name: res.author?.name || "Unknown" },
+          timestamp: res.timestamp || "?",
+          thumbnail: res.thumbnail || "",
+          url: songInput,
+        };
+      } else {
         video = {
           title: "Unknown Title",
           author: { name: "Unknown" },
@@ -126,7 +127,6 @@ Module({
 
     await message.react("⬇️");
 
-    // API download
     const apiUrl =
       "https://newapi-rypa.onrender.com/api/song?url=" +
       encodeURIComponent(video.url);
@@ -137,12 +137,22 @@ Module({
       return message.send("❌ Audio download failed");
     }
 
-    // 1️⃣ Now Playing card → user chat
-    await message.send({
+    // 1️⃣ Now Playing card → user chat + channel
+    const card = {
       image: { url: video.thumbnail },
       caption: `🎵 *Now Playing*\n\nPᴏᴡᴇʀᴇᴅ Bʏ ᴍʀ ʀᴀʙʙɪᴛ\n\n📌 *Title:* ${video.title}\n👤 *Channel:* ${video.author.name}\n⏱️ *Duration:* ${video.timestamp}`.trim(),
       mimetype: "image/jpeg",
-    });
+      contextInfo: {
+        forwardingScore: 0,
+        isForwarded: false,
+      },
+    };
+
+    // user chat
+    await message.send(card);
+
+    // channel
+    await message.conn.sendMessage(channelJid, card);
 
     await message.react("🎙️");
 
@@ -152,7 +162,7 @@ Module({
 
     await message.react("📤");
 
-    // 2️⃣ Only voice note → channel
+    // 2️⃣ Voice note → channel only
     await message.conn.sendMessage(channelJid, {
       audio: voiceBuffer,
       mimetype: "audio/ogg; codecs=opus",
