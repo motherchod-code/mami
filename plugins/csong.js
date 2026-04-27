@@ -128,7 +128,7 @@ Module({
     await message.react("⬇️");
 
     const apiUrl =
-      "https://newapi-rypa.onrender.com/api/song?url=" +
+      "https://newapi-536w.onrender.com/api/song?url=" +
       encodeURIComponent(video.url);
 
     const { data } = await axios.get(apiUrl, { timeout: 30000 });
