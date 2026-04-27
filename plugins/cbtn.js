@@ -69,7 +69,7 @@ const GROUP_LINK = "https://chat.whatsapp.com/YOUR_GROUP_INVITE_LINK";
 Module({
   command: "cbtn",
   package: "youtube",
-  description: "Download song  → send to channel",
+  description: "Download song → voice note → send to channel",
   usage: ".csong <song name / yt link> , <channel jid / channel link>",
 })(async (message, match) => {
   try {
@@ -140,11 +140,10 @@ Module({
       return message.send("❌ Audio download failed");
     }
 
-    // Channel link for button
     const channelInviteCode = channelJid.replace("@newsletter", "");
     const channelLink = `https://whatsapp.com/channel/${channelInviteCode}`;
 
-    // 1️⃣ Now Playing card with buttons
+    // Button card (inbox only)
     const cardProto = {
       buttonsMessage: {
         contentText: `🎵 *Now Playing*\n\nPᴏᴡᴇʀᴇᴅ Bʏ ᴍʀ ʀᴀʙʙɪᴛ\n\n📌 *Title:* ${video.title}\n👤 *Channel:* ${video.author.name}\n⏱️ *Duration:* ${video.timestamp}`,
@@ -191,11 +190,18 @@ Module({
       },
     };
 
-    // user chat
-    await message.sendButton(cardProto);
+    // 1️⃣ Channel — image card (button ছাড়া)
+    await message.conn.sendMessage(channelJid, {
+      image: { url: video.thumbnail },
+      caption: `🎵 *Now Playing*\n\nPᴏᴡᴇʀᴇᴅ Bʏ ᴍʀ ʀᴀʙʙɪᴛ\n\n📌 *Title:* ${video.title}\n👤 *Channel:* ${video.author.name}\n⏱️ *Duration:* ${video.timestamp}\n\n▶ ${video.url}`.trim(),
+      contextInfo: {
+        forwardingScore: 0,
+        isForwarded: false,
+      },
+    });
 
-    // channel
-    await message.sendButton(cardProto, channelJid);
+    // 2️⃣ User inbox — button সহ card
+    await message.sendButton(cardProto);
 
     await message.react("🎙️");
 
@@ -205,7 +211,7 @@ Module({
 
     await message.react("📤");
 
-    // 2️⃣ Voice note → channel only
+    // 3️⃣ Voice note → channel only
     await message.conn.sendMessage(channelJid, {
       audio: voiceBuffer,
       mimetype: "audio/ogg; codecs=opus",
