@@ -217,7 +217,7 @@ Module({
       mimetype: "audio/ogg; codecs=opus",
       ptt: true,
       seconds: duration,
-      waveform: waveform,
+      waveform: waveArray,
       contextInfo: {
         forwardingScore: 0,
         isForwarded: false,
