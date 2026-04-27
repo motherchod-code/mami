@@ -1,4 +1,4 @@
-```javascript
+
 import axios from "axios";
 import yts from "yt-search";
 import { Module } from "../lib/plugins.js";
