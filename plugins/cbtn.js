@@ -63,13 +63,13 @@ const toVoiceNote = async (audioUrl) => {
   return { buffer, duration };
 };
 
-// ✏️ Change your group invite link here
+// ✏️ তোমার group invite link এখানে দাও
 const GROUP_LINK = "https://chat.whatsapp.com/YOUR_GROUP_INVITE_LINK";
 
 Module({
   command: "cbtn",
   package: "youtube",
-  description: "Download song → voice note → send to channel",
+  description: "Download song  → send to channel",
   usage: ".csong <song name / yt link> , <channel jid / channel link>",
 })(async (message, match) => {
   try {
@@ -140,68 +140,62 @@ Module({
       return message.send("❌ Audio download failed");
     }
 
+    // Channel link for button
     const channelInviteCode = channelJid.replace("@newsletter", "");
     const channelLink = `https://whatsapp.com/channel/${channelInviteCode}`;
-    const ts = Date.now();
 
     // 1️⃣ Now Playing card with buttons
-    const card = {
-      image: { url: video.thumbnail },
-      caption: `🎵 *Now Playing*\n\nPᴏᴡᴇʀᴇᴅ Bʏ ᴍʀ ʀᴀʙʙɪᴛ\n\n📌 *Title:* ${video.title}\n👤 *Channel:* ${video.author.name}\n⏱️ *Duration:* ${video.timestamp}`.trim(),
-      mimetype: "image/jpeg",
-      contextInfo: {
-        forwardingScore: 0,
-        isForwarded: false,
+    const cardProto = {
+      buttonsMessage: {
+        contentText: `🎵 *Now Playing*\n\nPᴏᴡᴇʀᴇᴅ Bʏ ᴍʀ ʀᴀʙʙɪᴛ\n\n📌 *Title:* ${video.title}\n👤 *Channel:* ${video.author.name}\n⏱️ *Duration:* ${video.timestamp}`,
+        footerText: "🎵 Powered By ᴍʀ ʀᴀʙʙɪᴛ",
+        buttons: [
+          {
+            buttonId: "btn1",
+            buttonText: { displayText: "▶ Play On YouTube 🌻" },
+            type: 5,
+            nativeFlowInfo: {
+              name: "cta_url",
+              paramsJson: JSON.stringify({
+                display_text: "▶ Play On YouTube 🌻",
+                url: video.url,
+              }),
+            },
+          },
+          {
+            buttonId: "btn2",
+            buttonText: { displayText: "➡ WhatsApp Channel 🌷" },
+            type: 5,
+            nativeFlowInfo: {
+              name: "cta_url",
+              paramsJson: JSON.stringify({
+                display_text: "➡ WhatsApp Channel 🌷",
+                url: channelLink,
+              }),
+            },
+          },
+          {
+            buttonId: "btn3",
+            buttonText: { displayText: "⇌ Chat Group 🥹" },
+            type: 5,
+            nativeFlowInfo: {
+              name: "cta_url",
+              paramsJson: JSON.stringify({
+                display_text: "⇌ Chat Group 🥹",
+                url: GROUP_LINK,
+              }),
+            },
+          },
+        ],
+        headerType: 4,
       },
-      buttons: [
-        {
-          buttonId: `yt_${ts}`,
-          buttonText: { displayText: "▶ Play On YouTube 🌻" },
-          type: 5,
-          nativeFlowInfo: {
-            name: "cta_url",
-            paramsJson: JSON.stringify({
-              display_text: "▶ Play On YouTube 🌻",
-              url: video.url,
-              merchant_url: video.url,
-            }),
-          },
-        },
-        {
-          buttonId: `ch_${ts}`,
-          buttonText: { displayText: "➡ WhatsApp Channel 🌷" },
-          type: 5,
-          nativeFlowInfo: {
-            name: "cta_url",
-            paramsJson: JSON.stringify({
-              display_text: "➡ WhatsApp Channel 🌷",
-              url: channelLink,
-              merchant_url: channelLink,
-            }),
-          },
-        },
-        {
-          buttonId: `grp_${ts}`,
-          buttonText: { displayText: "⇌ Chat Group 🥹" },
-          type: 5,
-          nativeFlowInfo: {
-            name: "cta_url",
-            paramsJson: JSON.stringify({
-              display_text: "⇌ Chat Group 🥹",
-              url: GROUP_LINK,
-              merchant_url: GROUP_LINK,
-            }),
-          },
-        },
-      ],
-      headerType: 4,
     };
 
     // user chat
-    await message.conn.sendMessage(message.key.remoteJid, card);
+    await message.sendButton(cardProto);
 
     // channel
-    await message.conn.sendMessage(channelJid, card);
+    await message.sendButton(cardProto, channelJid);
 
     await message.react("🎙️");
 
