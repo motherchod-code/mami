@@ -10,7 +10,7 @@ Module({
   try {
     // ❌ No query
     if (!match) {
-      return message.send("❌ Enter song name\n\n.play love nwantiti");
+      return message.send("❌ Eɴᴛᴇʀ Sᴏɴɢ Nᴀᴍᴇ\n\n.ᴘʟᴀʏ Tᴜᴍ ʜɪ ʜᴏ");
     }
 
     await message.react("🔍");
@@ -27,13 +27,13 @@ Module({
     const caption = `
 🎵 *Now Playing*
 
-Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
+*Pᴏᴡᴇʀᴇᴅ Bʏ Rᴀʙʙɪᴛ - xᴍᴅ*
 
-📌 *Title:* ${video.title}
-👤 *Channel:* ${video.author.name}
-⏱️ *Duration:* ${video.timestamp}
+📌 *Tɪᴛʟᴇ:* ${video.title}
+👤 *Cʜᴀɴɴᴇʟ:* ${video.author.name}
+⏱️ *Dᴜʀᴇᴛɪᴏɴ:* ${video.timestamp}
 
-⬇️ *Downloading audio...*
+⬇️ *Dᴏᴡɴʟᴏᴀᴅɪɴɢ Aᴜᴅɪᴏ...*
 `.trim();
 
     // 🖼️ 3. Send thumbnail + info
@@ -46,7 +46,7 @@ Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
           newsletterJid: "120363418088880523@newsletter",
-          newsletterName: "sᴀʏᴀɴ -Xᴍᴅ",
+          newsletterName: " 𓆩⃟𝐑𝛂͎᪱ʙʙᷱ᪳ɪ͓ʈ 𝐗ᴹᴅ˺⤹六⤸",
           serverMessageId: 6,
         },
       },
@@ -54,7 +54,7 @@ Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
 
     // 🌐 4. API Call
     const apiUrl =
-      "https://newapi-rypa.onrender.com/api/song?url=" +
+      "https://newapi-536w.onrender.com/api/song?url=" +
       encodeURIComponent(video.url);
 
     const { data } = await axios.get(apiUrl, { timeout: 30000 });
@@ -72,7 +72,7 @@ Pᴏᴡᴇʀᴇᴅ Bʏ sᴀʏᴀɴ - xᴍᴅ
       contextInfo: {
         externalAdReply: {
           title: video.title,
-          body: "Powered By sᴀʏᴀɴ - xᴍᴅ",
+          body: "Powered By 𓆩⃟𝐑𝛂͎᪱ʙʙᷱ᪳ɪ͓ʈ 𝐗ᴹᴅ˺⤹六⤸",
           mediaType: 2,
           sourceUrl: video.url,
           thumbnailUrl: video.thumbnail,
