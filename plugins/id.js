@@ -41,7 +41,7 @@ Module({
 🆔 *Group ID:*
 \`${id}\`
 
-_Powered By sᴀʏᴀɴ - xᴍᴅ_
+_Powered By 𓆩⃟𝐑𝛂͎᪱ʙʙᷱ᪳ɪ͓ʈ 𝐗ᴹᴅ˺⤹六⤸
 `.trim());
     }
 
@@ -63,7 +63,7 @@ _Powered By sᴀʏᴀɴ - xᴍᴅ_
 🆔 *Channel ID:*
 \`${id}\`
 
-_Powered By sᴀʏᴀɴ - xᴍᴅ_
+_Powered By 𓆩⃟𝐑𝛂͎᪱ʙʙᷱ᪳ɪ͓ʈ 𝐗ᴹᴅ˺⤹六⤸_
 `.trim());
     }
 
