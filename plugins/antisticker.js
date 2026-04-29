@@ -21,7 +21,7 @@ function modeKeyFor(groupJid) {
 
 // ===== COMMAND =====
 Module({
-  command: "antisticker",
+  command: "antistickerk",
   package: "owner",
   aliases: ["antistick", "nosticker"],
   description: "Enable/disable anti-sticker or set mode",
