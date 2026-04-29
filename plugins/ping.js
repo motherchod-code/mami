@@ -77,7 +77,7 @@ Module({
   await message.conn.sendMessage(
     message.from,
     {
-      text: `*${emoji} 𝐏☉ƞ̽g: ${latency} 𝐌s*`,
+      text: `*𝐏☉𝐍𝐆: ${latency} 𝐌𝐒⤸⟵*`,
       contextInfo: {
         mentionedJid: [message.sender],
       },
