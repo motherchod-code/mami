@@ -1,4 +1,5 @@
 import { Module } from "../lib/plugins.js";
+import { sendButtons } from "gifted-btns";
 
 Module({
   command: "checkid",
@@ -14,7 +15,6 @@ Module({
 
     await message.react("⌛");
 
-    // Extract WhatsApp link
     const linkMatch = match.match(
       /https?:\/\/(chat\.whatsapp\.com|whatsapp\.com\/channel)\/[^\s]+/i
     );
@@ -34,15 +34,28 @@ Module({
       const id = res.id;
 
       await message.react("✅");
-      return message.send(`
-📊 *Group Link Analysis*
 
-🔗 *Link:* ${link}
-🆔 *Group ID:*
-\`${id}\`
-
-_Powered By 𓆩⃟𝐑𝛂͎᪱ʙʙᷱ᪳ɪ͓ʈ 𝐗ᴹᴅ˺⤹六⤸
-`.trim());
+      return await sendButtons(message.client, message.jid, {
+        title: "📊 Group Link Analysis",
+        text: `🔗 *Link:* ${link}\n🆔 *Group ID:*\n\`${id}\``,
+        footer: "Powered By 𓆩⃟𝐑𝛂͎᪱ʙʙᷱ᪳ɪ͓ʈ 𝐗ᴹᴅ˺⤹六⤸",
+        buttons: [
+          {
+            name: "cta_copy",
+            buttonParamsJson: JSON.stringify({
+              display_text: "📋 Copy Group ID",
+              copy_code: id,
+            }),
+          },
+          {
+            name: "cta_url",
+            buttonParamsJson: JSON.stringify({
+              display_text: "🔗 Open Group Link",
+              url: link,
+            }),
+          },
+        ],
+      });
     }
 
     // ================= CHANNEL =================
@@ -56,15 +69,28 @@ _Powered By 𓆩⃟𝐑𝛂͎᪱ʙʙᷱ᪳ɪ͓ʈ 𝐗ᴹᴅ˺⤹六⤸
       const id = res.id;
 
       await message.react("✅");
-      return message.send(`
-📢 *Channel Link Analysis*
 
-🔗 *Link:* ${link}
-🆔 *Channel ID:*
-\`${id}\`
-
-_Powered By 𓆩⃟𝐑𝛂͎᪱ʙʙᷱ᪳ɪ͓ʈ 𝐗ᴹᴅ˺⤹六⤸_
-`.trim());
+      return await sendButtons(message.client, message.jid, {
+        title: "📢 Channel Link Analysis",
+        text: `🔗 *Link:* ${link}\n🆔 *Channel ID:*\n\`${id}\``,
+        footer: "Powered By 𓆩⃟𝐑𝛂͎᪱ʙʙᷱ᪳ɪ͓ʈ 𝐗ᴹᴅ˺⤹六⤸",
+        buttons: [
+          {
+            name: "cta_copy",
+            buttonParamsJson: JSON.stringify({
+              display_text: "📋 Copy Channel ID",
+              copy_code: id,
+            }),
+          },
+          {
+            name: "cta_url",
+            buttonParamsJson: JSON.stringify({
+              display_text: "🔗 Open Channel Link",
+              url: link,
+            }),
+          },
+        ],
+      });
     }
 
     await message.react("❌");
