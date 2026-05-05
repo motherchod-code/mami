@@ -82,7 +82,7 @@ ${readMore}
     }
 
     const opts = {
-      image: { url: "https://www.rabbit.zone.id/pzf1km.jpg" },
+      image: { url: "https://cdn.nabees.online/pzf1km.jpg" },
       caption: _cmd_st,
       mimetype: "image/jpeg",
       contextInfo: {
